@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Parking Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+
+        .slot-card {
+            transition: all 0.3s ease;
+        }
+
+        .status-empty {
+            color: #10b981;
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+        }
+
+        .status-occupied {
+            color: #ef4444;
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 font-sans">
+
+<header class="gradient-bg text-white p-6 rounded-b-3xl shadow-lg">
+
+    <div class="flex justify-between items-center mb-6">
+        <i class="fa-solid fa-bars text-xl"></i>
+
+        <h1 class="text-xl font-bold">
+            Smart Parking
+        </h1>
+
+        <i class="fa-solid fa-bell text-xl"></i>
+    </div>
+
+    <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-md flex justify-between items-center">
+
+        <div>
+            <p class="text-sm opacity-80">
+                Parking Status
+            </p>
+
+            <p class="text-xs mb-2">
+                Real-time availability
+            </p>
+
+            <h2 class="text-4xl font-bold">
+                <span id="header-empty">0</span> /
+                <span id="header-total">0</span>
+            </h2>
+
+            <p class="text-green-400 font-semibold mt-1">
+                Slots Available
+            </p>
+        </div>
+
+        <img src="https://cdn-icons-png.flaticon.com/512/744/744465.png"
+        class="w-24 opacity-90">
+
+    </div>
+</header>
+
+<main class="p-6">
+
+    <h3 class="font-bold text-gray-800 mb-4 border-b-2 border-blue-600 w-fit pb-1">
+        Slot Details
+    </h3>
+
+    <div id="slots-container"
+    class="grid grid-cols-3 gap-4 mb-8">
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 bg-blue-50 p-4 rounded-2xl shadow-inner">
+
+        <div class="text-center">
+            <i class="fa-solid fa-car text-blue-600 mb-1"></i>
+
+            <p id="stat-total" class="font-bold text-lg">0</p>
+
+            <p class="text-[10px] text-gray-500">
+                Total Slots
+            </p>
+        </div>
+
+        <div class="text-center">
+            <i class="fa-solid fa-circle-check text-green-500 mb-1"></i>
+
+            <p id="stat-empty" class="font-bold text-lg">0</p>
+
+            <p class="text-[10px] text-gray-500">
+                Empty Slots
+            </p>
+        </div>
+
+        <div class="text-center">
+            <i class="fa-solid fa-car-side text-red-500 mb-1"></i>
+
+            <p id="stat-occupied" class="font-bold text-lg">0</p>
+
+            <p class="text-[10px] text-gray-500">
+                Occupied
+            </p>
+        </div>
+
+    </div>
+
+    <p class="text-center text-blue-800 text-xs mt-6 opacity-60">
+        Last Updated:
+        <span id="last-update">--:--:--</span>
+    </p>
+
+</main>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import { getDatabase, ref, onValue }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+    databaseURL:
+    "https://carparking-56a23-default-rtdb.firebaseio.com/"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+const parkingRef = ref(db, 'parking');
+
+onValue(parkingRef, (snapshot) => {
+
+    const data = snapshot.val();
+
+    console.log(data);
+
+    if (!data) return;
+
+    document.getElementById('header-empty').innerText =
+    data.empty_slots;
+
+    document.getElementById('header-total').innerText =
+    data.total_slots;
+
+    document.getElementById('stat-total').innerText =
+    data.total_slots;
+
+    document.getElementById('stat-empty').innerText =
+    data.empty_slots;
+
+    document.getElementById('stat-occupied').innerText =
+    data.occupied_slots;
+
+    document.getElementById('last-update').innerText =
+    new Date().toLocaleTimeString();
+
+    const container =
+    document.getElementById('slots-container');
+
+    container.innerHTML = '';
+
+    for (let slotID in data.slots) {
+
+        const status =
+        data.slots[slotID].toLowerCase();
+
+        const isOccupied =
+        status === 'occupied';
+
+        const slotHTML = `
+
+        <div class="bg-white p-3 rounded-2xl shadow-sm text-center slot-card">
+
+            <p class="text-xs font-bold mb-2">
+                Slot ${slotID}
+            </p>
+
+            <div class="relative flex justify-center mb-2">
+
+                <div class="w-12 h-12 rounded-full
+                ${isOccupied ? 'bg-red-100' : 'bg-green-100'}
+                absolute blur-md"></div>
+
+                <i class="fa-solid fa-car text-3xl z-10
+                ${isOccupied ? 'text-red-500' : 'text-green-500'}"></i>
+
+            </div>
+
+            <span class="text-[10px] px-2 py-1 rounded-lg uppercase font-bold
+            ${isOccupied ? 'status-occupied' : 'status-empty'}">
+
+                ${status}
+
+            </span>
+
+        </div>
+        `;
+
+        container.innerHTML += slotHTML;
+    }
+
+});
+
+</script>
+
+</body>
+</html>
